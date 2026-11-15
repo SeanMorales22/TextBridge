@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Contacts{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Contacts</h1>
+  <p class="muted">Save authorized test recipients so you can pick them from the compose form. Only add people who agreed to receive test messages.</p>
+</div>
+
+<div class="grid-compose">
+  <section class="card">
+    <h2 class="card-title">Saved contacts</h2>
+    {% if contacts %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Phone number</th><th>Messages</th><th></th></tr></thead>
+        <tbody>
+          {% for contact in contacts %}
+          <tr>
+            <td><strong>{{ contact.name }}</strong></td>
+            <td class="mono">{{ contact.phone_number }}</td>
+            <td>{{ contact.message_count }}</td>
+            <td class="row-actions">
+              <a class="btn btn-small btn-primary" href="{% url 'sms_app:compose' %}?contact={{ contact.pk }}">Send SMS</a>
+              <form method="post" action="{% url 'sms_app:delete_contact' contact.pk %}"
+                    onsubmit="return confirm('Delete {{ contact.name|escapejs }}? Message history is kept.');">
+                {% csrf_token %}
+                <button class="btn btn-small btn-danger" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="empty">No contacts yet. Add one using the form.</p>
+    {% endif %}
+  </section>
+
+  <aside class="side">
+    <section class="card">
+      <h2 class="card-title">Add a contact</h2>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="field {% if field.errors %}has-error{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }} <span class="req">*</span></label>
+            {{ field }}
+            {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          </div>
+        {% endfor %}
+        <button class="btn btn-primary" type="submit">Save contact</button>
+      </form>
+    </section>
+  </aside>
+</div>
+{% endblock %}

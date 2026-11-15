@@ -1,0 +1,50 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SMS Sender{% endblock %} · TextBridge</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="{% url 'sms_app:compose' %}">
+        <span class="brand-mark" aria-hidden="true">✉</span> TextBridge
+      </a>
+      <nav class="nav" aria-label="Main">
+        {% with name=request.resolver_match.url_name %}
+        <a href="{% url 'sms_app:compose' %}" class="{% if name == 'compose' %}active{% endif %}">Compose</a>
+        <a href="{% url 'sms_app:history' %}" class="{% if name == 'history' or name == 'message_detail' %}active{% endif %}">History</a>
+        <a href="{% url 'sms_app:contacts' %}" class="{% if name == 'contacts' %}active{% endif %}">Contacts</a>
+        {% endwith %}
+      </nav>
+      <span class="provider-pill {% if provider_configured %}ok{% else %}bad{% endif %}"
+            title="{% if provider_configured %}Gateway credentials are loaded from environment variables.{% else %}Set the SMSGATE_* variables in your .env file.{% endif %}">
+        <span class="dot" aria-hidden="true"></span>
+        {% if provider_configured %}SMS gateway configured{% else %}SMS gateway not configured{% endif %}
+      </span>
+    </div>
+  </header>
+
+  <main class="container">
+    {% if messages %}
+      <div class="alerts" role="status" aria-live="polite">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">
+            <span class="alert-icon" aria-hidden="true">{% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}!{% else %}i{% endif %}</span>
+            <span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer container">
+    IT 120 – Integrative Programming and Technologies · Django + SMS Gateway for Android
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

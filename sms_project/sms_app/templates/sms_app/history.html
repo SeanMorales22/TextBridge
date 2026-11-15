@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Message history</h1>
+  <p class="muted">Every sending attempt is recorded here, including failed ones. “Submitted” means the SMS gateway accepted the message; only “Delivered” means the recipient's phone confirmed it arrived.</p>
+</div>
+
+<div class="stats">
+  <a class="stat {% if not category %}active{% endif %}" href="?">
+    <span class="stat-num">{{ stats.total }}</span><span class="stat-label">Total attempts</span>
+  </a>
+  <a class="stat stat-delivered {% if category == 'delivered' %}active{% endif %}" href="?category=delivered">
+    <span class="stat-num">{{ stats.delivered }}</span><span class="stat-label">Delivered</span>
+  </a>
+  <a class="stat stat-submitted {% if category == 'submitted' %}active{% endif %}" href="?category=submitted">
+    <span class="stat-num">{{ stats.submitted }}</span><span class="stat-label">Submitted, not confirmed</span>
+  </a>
+  <a class="stat stat-failed {% if category == 'failed' %}active{% endif %}" href="?category=failed">
+    <span class="stat-num">{{ stats.failed }}</span><span class="stat-label">Failed / rejected</span>
+  </a>
+</div>
+
+<section class="card">
+  <form method="get" class="search-row">
+    {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+    <input type="search" name="q" value="{{ query }}" placeholder="Search by number, contact or message text" aria-label="Search messages">
+    <button class="btn btn-ghost" type="submit">Search</button>
+    {% if query or category %}<a class="link" href="?">Clear filters</a>{% endif %}
+  </form>
+
+  {% if page.object_list %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Date</th><th>Recipient</th><th>Message</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for sms in page.object_list %}
+        <tr>
+          <td class="nowrap">{{ sms.created_at|date:"M d, Y H:i" }}</td>
+          <td class="nowrap">
+            {% if sms.contact %}<strong>{{ sms.contact.name }}</strong><br>{% endif %}
+            <span class="mono">{{ sms.recipient }}</span>
+          </td>
+          <td>{{ sms.body|truncatechars:70 }}</td>
+          <td>{% include "sms_app/_status_badge.html" %}</td>
+          <td><a class="link" href="{% url 'sms_app:message_detail' sms.pk %}">Details</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page.has_other_pages %}
+  <nav class="pager" aria-label="Pagination">
+    {% if page.has_previous %}<a class="btn btn-ghost" href="?page={{ page.previous_page_number }}{% if category %}&category={{ category }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}">← Newer</a>{% endif %}
+    <span class="muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn btn-ghost" href="?page={{ page.next_page_number }}{% if category %}&category={{ category }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}">Older →</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+    <p class="empty">No messages match. <a class="link" href="{% url 'sms_app:compose' %}">Send one now →</a></p>
+  {% endif %}
+</section>
+{% endblock %}

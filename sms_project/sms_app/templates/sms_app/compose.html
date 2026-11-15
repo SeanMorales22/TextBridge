@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Compose{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Send an SMS</h1>
+  <p class="muted">Enter a recipient and a message. The app validates your input, submits it to the SMS gateway, and shows you the gateway's response.</p>
+</div>
+
+{% if not provider_configured %}
+  <div class="alert alert-warning">
+    <span class="alert-icon" aria-hidden="true">!</span>
+    <span>The SMS gateway is not configured yet. You can still try the form, but sending will fail with a configuration error. See the README, section “Configuring the SMS gateway”.</span>
+  </div>
+{% endif %}
+
+<div class="grid-compose">
+  <section class="card">
+    <form method="post" id="sms-form" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="field-error">{{ form.non_field_errors|join:" " }}</div>
+      {% endif %}
+
+      {% if form.contact.field.queryset.exists %}
+      <div class="field">
+        <label for="{{ form.contact.id_for_label }}">{{ form.contact.label }}</label>
+        {{ form.contact }}
+      </div>
+      {% endif %}
+
+      <div class="field {% if form.recipient.errors %}has-error{% endif %}">
+        <label for="{{ form.recipient.id_for_label }}">{{ form.recipient.label }} <span class="req">*</span></label>
+        {{ form.recipient }}
+        {% for error in form.recipient.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        <div class="help">{{ form.recipient.help_text }}</div>
+      </div>
+
+      <div class="field {% if form.message.errors %}has-error{% endif %}">
+        <label for="{{ form.message.id_for_label }}">{{ form.message.label }} <span class="req">*</span></label>
+        {{ form.message }}
+        {% for error in form.message.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        <div class="counter" id="counter" aria-live="polite">
+          <span><strong id="char-count">0</strong> / {{ max_length }} characters</span>
+          <span><strong id="segment-count">0</strong> SMS segment(s)</span>
+          <span id="encoding" class="chip">GSM-7</span>
+        </div>
+        <div class="help" id="encoding-help">Plain-text messages fit 160 characters per SMS. Emoji or special characters reduce this to 70.</div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary" id="send-btn">Send SMS</button>
+        <button type="reset" class="btn btn-ghost" id="clear-btn">Clear</button>
+      </div>
+    </form>
+  </section>
+
+  <aside class="side">
+    <section class="card preview-card">
+      <h2 class="card-title">Message preview</h2>
+      <div class="phone">
+        <div class="phone-top">
+          <span class="phone-to" id="preview-to">Recipient</span>
+        </div>
+        <div class="phone-body">
+          <div class="bubble" id="preview-bubble"><span class="muted">Your message will appear here.</span></div>
+        </div>
+      </div>
+      <p class="help">Messages are sent from the gateway phone's SIM card, so normal texting rates (or your unli-text promo) apply.</p>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Recent attempts</h2>
+      {% if recent %}
+        <ul class="recent-list">
+          {% for sms in recent %}
+            <li>
+              <a href="{% url 'sms_app:message_detail' sms.pk %}">
+                <span class="recent-to">{% if sms.contact %}{{ sms.contact.name }}{% else %}{{ sms.recipient }}{% endif %}</span>
+                {% include "sms_app/_status_badge.html" %}
+              </a>
+              <div class="recent-body">{{ sms.body|truncatechars:60 }}</div>
+            </li>
+          {% endfor %}
+        </ul>
+        <a class="link" href="{% url 'sms_app:history' %}">View full history →</a>
+      {% else %}
+        <p class="muted">No messages sent yet.</p>
+      {% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/compose.js' %}"></script>
+{% endblock %}

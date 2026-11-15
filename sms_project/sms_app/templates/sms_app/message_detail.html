@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Message #{{ sms.pk }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <a class="link" href="{% url 'sms_app:history' %}">← Back to history</a>
+  <h1>Message #{{ sms.pk }}</h1>
+</div>
+
+<div class="grid-compose">
+  <section class="card">
+    <div class="status-hero status-{{ sms.category }}">
+      {% include "sms_app/_status_badge.html" %}
+      <p>{{ sms.status_explanation }}</p>
+    </div>
+
+    {% if sms.error_message %}
+      <div class="alert alert-error">
+        <span class="alert-icon" aria-hidden="true">!</span>
+        <span>{{ sms.error_message }}{% if sms.error_code %} <span class="muted">({{ sms.error_code }})</span>{% endif %}</span>
+      </div>
+    {% endif %}
+
+    <ol class="steps" aria-label="Delivery progress">
+      {% for label, state in sms.progress_steps %}
+        <li class="{{ state }}">{{ label }}</li>
+      {% endfor %}
+    </ol>
+
+    <dl class="details">
+      <dt>Recipient</dt>
+      <dd>{% if sms.contact %}{{ sms.contact.name }} · {% endif %}<span class="mono">{{ sms.recipient }}</span></dd>
+      <dt>Created</dt><dd>{{ sms.created_at|date:"M d, Y H:i:s" }}</dd>
+      <dt>Last updated</dt><dd>{{ sms.updated_at|date:"M d, Y H:i:s" }}</dd>
+      {% if sms.provider_sid %}<dt>Gateway message ID</dt><dd class="mono small">{{ sms.provider_sid }}</dd>{% endif %}
+    </dl>
+
+    <div class="actions">
+      {% if sms.can_refresh %}
+        <form method="post" action="{% url 'sms_app:refresh_status' sms.pk %}" id="refresh-form">
+          {% csrf_token %}
+          <button class="btn btn-primary" type="submit">Refresh delivery status</button>
+        </form>
+      {% endif %}
+      <a class="btn btn-ghost" href="{% url 'sms_app:compose' %}{% if sms.contact %}?contact={{ sms.contact.pk }}{% endif %}">Send another</a>
+    </div>
+    {% if sms.can_refresh %}
+      <p class="help" id="auto-refresh-note" aria-live="polite">Checking the gateway for updates automatically every few seconds…</p>
+    {% endif %}
+  </section>
+
+  <aside class="side">
+    <section class="card preview-card">
+      <h2 class="card-title">Message</h2>
+      <div class="phone">
+        <div class="phone-top"><span class="phone-to">{{ sms.recipient }}</span></div>
+        <div class="phone-body"><div class="bubble">{{ sms.body|linebreaksbr }}</div></div>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if sms.can_refresh %}
+<script src="{% static 'js/status_poll.js' %}" data-status="{{ sms.status }}"></script>
+{% endif %}
+{% endblock %}
